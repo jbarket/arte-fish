@@ -67,3 +67,28 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   .hero #bg-canvas { transition: none; }
 }
+
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+a:focus-visible {
+  outline-offset: 5px;
+}
+
+.skip-link {
+  position: absolute;
+  top: -999px;
+  left: 1rem;
+  background: var(--bg);
+  color: var(--fg);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--fg);
+  z-index: 10;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
