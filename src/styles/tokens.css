@@ -1,0 +1,17 @@
+:root {
+  --bg: #0d0d10;
+  --fg: #e8e6e0;
+  --fg-muted: #9a968d;
+  --canvas-low: #0f2026;
+  --canvas-high: #4d8a7a;
+
+  --measure: 620px;
+  --gutter: clamp(1.5rem, 5vw, 3rem);
+  --section-gap: clamp(3rem, 8vh, 5rem);
+
+  --font-serif: "Fraunces", "Iowan Old Style", "Source Serif Pro", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+html { background: var(--bg); color: var(--fg); }
+body { font-family: var(--font-serif); }
