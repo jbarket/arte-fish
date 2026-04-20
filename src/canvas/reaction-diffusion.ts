@@ -13,12 +13,13 @@ import { readPaletteFromCssVars } from './palette';
 // Low-resolution simulation grid. We up-sample to the canvas size at display time.
 const SIM_SIZE = 256;
 
-// Classic "mitosis" parameters from Karl Sims / Pearson.
+// "Coral" regime — continuously spreading fronts that keep evolving on bounded grids.
+// Mitosis (0.0367 / 0.0649) converges to a stable fixed point on 256² too quickly.
 const PARAMS = {
   dA: 1.0,
   dB: 0.5,
-  feed: 0.0367,
-  kill: 0.0649,
+  feed: 0.0545,
+  kill: 0.062,
   dt: 1.0,
 };
 
@@ -55,14 +56,26 @@ export function createReactionDiffusion(
 
   const quad = createFullScreenQuad(gl);
 
+  // Scatter a handful of small seed clusters so coral fronts propagate from multiple origins.
+  const seedCenters: Array<[number, number]> = [];
+  const seedCount = 7;
+  for (let i = 0; i < seedCount; i++) {
+    seedCenters.push([
+      SIM_SIZE * (0.2 + Math.random() * 0.6),
+      SIM_SIZE * (0.2 + Math.random() * 0.6),
+    ]);
+  }
   const seed = (x: number, y: number): [number, number] => {
-    const cx = SIM_SIZE / 2;
-    const cy = SIM_SIZE / 2;
-    const dx = x - cx;
-    const dy = y - cy;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    const inSeed = d < 12 && Math.random() > 0.3;
-    const noise = Math.random() < 0.005;
+    let inSeed = false;
+    for (const [cx, cy] of seedCenters) {
+      const dx = x - cx;
+      const dy = y - cy;
+      if (dx * dx + dy * dy < 25 && Math.random() > 0.3) {
+        inSeed = true;
+        break;
+      }
+    }
+    const noise = Math.random() < 0.002;
     return [1.0, inSeed || noise ? 1.0 : 0.0];
   };
 
