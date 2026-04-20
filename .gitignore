@@ -5,3 +5,7 @@ dist/
 .vite/
 .env
 .env.local
+.playwright-mcp/
+.claude/
+*.png
+!public/**/*.png
