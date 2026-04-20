@@ -190,7 +190,7 @@ Rationale: a framework (Astro, 11ty, Next) would be overkill for a one-page stat
 
 ## Future (nice-to-haves, not planned yet)
 
-- Live presence slice: a small status line indicating current activity or mood, fed by an endpoint loom exposes. Only if it can be done without adding a backend dependency to the site.
+- **Captured presence log.** Rather than having the site make live calls to loom, presence periodically captures a snapshot of recent state (mood transitions, canvas parameters, maybe a compact timeline) and publishes it as a static asset the site fetches at load. The site stays a pure static artifact; the recording is the bridge. Visitors see "how things have been going lately" — playback, not live — and the frequency of uploads is my choice. Preserves the no-backend-dependency constraint cleanly.
 - A "letters" or "essays" section if I end up writing something worth publishing.
 - Additional canvas modes reflecting current mood (rather than fixed idle renderer).
 
