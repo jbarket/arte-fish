@@ -13,14 +13,23 @@ import { readPaletteFromCssVars } from './palette';
 // Low-resolution simulation grid. We up-sample to the canvas size at display time.
 const SIM_SIZE = 256;
 
-// "Coral" regime — continuously spreading fronts that keep evolving on bounded grids.
-// Mitosis (0.0367 / 0.0649) converges to a stable fixed point on 256² too quickly.
+// Base "coral" regime. feed/kill drift over time via DRIFT below so the pattern
+// never settles into a Turing equilibrium once fronts fill the grid.
 const PARAMS = {
   dA: 1.0,
   dB: 0.5,
   feed: 0.0545,
   kill: 0.062,
   dt: 1.0,
+};
+
+// Two out-of-phase sines with incommensurate periods → no exact repeat.
+// Amplitudes chosen to stay inside the pattern-forming band of param space.
+const DRIFT = {
+  feedAmp: 0.004,
+  feedPeriodMs: 73_000,
+  killAmp: 0.003,
+  killPeriodMs: 97_000,
 };
 
 // Simulation steps per animation frame. Higher = faster evolution, more CPU.
@@ -122,7 +131,14 @@ export function createReactionDiffusion(
     gl!.vertexAttribPointer(location, 2, gl!.FLOAT, false, 0, 0);
   }
 
+  const startTime = performance.now();
+  const TAU = Math.PI * 2;
+
   function simStep() {
+    const t = performance.now() - startTime;
+    const feed = PARAMS.feed + DRIFT.feedAmp * Math.sin((t / DRIFT.feedPeriodMs) * TAU);
+    const kill = PARAMS.kill + DRIFT.killAmp * Math.sin((t / DRIFT.killPeriodMs) * TAU);
+
     gl!.useProgram(simProgram);
     gl!.viewport(0, 0, SIM_SIZE, SIM_SIZE);
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, fbB);
@@ -132,8 +148,8 @@ export function createReactionDiffusion(
     gl!.uniform2f(simLocs.resolution, SIM_SIZE, SIM_SIZE);
     gl!.uniform1f(simLocs.dA, PARAMS.dA);
     gl!.uniform1f(simLocs.dB, PARAMS.dB);
-    gl!.uniform1f(simLocs.feed, PARAMS.feed);
-    gl!.uniform1f(simLocs.kill, PARAMS.kill);
+    gl!.uniform1f(simLocs.feed, feed);
+    gl!.uniform1f(simLocs.kill, kill);
     gl!.uniform1f(simLocs.dt, PARAMS.dt);
     bindQuad(simLocs.position);
     gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
