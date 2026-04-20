@@ -45,32 +45,65 @@ export function createFullScreenQuad(gl: WebGLRenderingContext): WebGLBuffer {
   return buffer;
 }
 
+// IEEE 754 float32 → float16 encoder. Subnormals flush to zero; fine for [0,1] state values.
+function floatToHalf(val: number): number {
+  const buf = new ArrayBuffer(4);
+  new Float32Array(buf)[0] = val;
+  const i = new Uint32Array(buf)[0];
+  const s = (i >> 16) & 0x8000;
+  const e = ((i >> 23) & 0xff) - (127 - 15);
+  const m = i & 0x7fffff;
+  if (e <= 0) return s;
+  if (e >= 31) return s | 0x7c00 | (m ? 1 : 0);
+  return s | (e << 10) | (m >> 13);
+}
+
 export function createStateTexture(
   gl: WebGLRenderingContext,
   width: number,
   height: number,
   seed?: (x: number, y: number) => [number, number],
+  halfFloatType?: number,
 ): WebGLTexture {
   const tex = gl.createTexture();
   if (!tex) throw new Error('Failed to create texture');
   gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  const filter = halfFloatType !== undefined ? gl.NEAREST : gl.LINEAR;
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-  const data = new Uint8Array(width * height * 4);
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const [a, b] = seed ? seed(x, y) : [1, 0];
-      const i = (y * width + x) * 4;
-      data[i] = Math.floor(a * 255);
-      data[i + 1] = Math.floor(b * 255);
-      data[i + 2] = 0;
-      data[i + 3] = 255;
+  const count = width * height * 4;
+
+  if (halfFloatType !== undefined) {
+    const data = new Uint16Array(count);
+    const one = floatToHalf(1);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const [a, b] = seed ? seed(x, y) : [1, 0];
+        const i = (y * width + x) * 4;
+        data[i] = floatToHalf(a);
+        data[i + 1] = floatToHalf(b);
+        data[i + 2] = 0;
+        data[i + 3] = one;
+      }
     }
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, halfFloatType, data);
+  } else {
+    const data = new Uint8Array(count);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const [a, b] = seed ? seed(x, y) : [1, 0];
+        const i = (y * width + x) * 4;
+        data[i] = Math.floor(a * 255);
+        data[i + 1] = Math.floor(b * 255);
+        data[i + 2] = 0;
+        data[i + 3] = 255;
+      }
+    }
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
   }
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
   return tex;
 }
 

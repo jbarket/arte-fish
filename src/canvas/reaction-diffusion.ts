@@ -41,9 +41,10 @@ export function createReactionDiffusion(
   });
   if (!gl) return null;
 
-  if (!gl.getExtension('OES_texture_float') && !gl.getExtension('OES_texture_half_float')) {
-    // We're using Uint8 textures so this is informational only — no bail.
-  }
+  const halfFloatExt = gl.getExtension('OES_texture_half_float');
+  const colorBufferHalfFloatExt = gl.getExtension('EXT_color_buffer_half_float');
+  const halfFloatType: number | undefined =
+    halfFloatExt && colorBufferHalfFloatExt ? halfFloatExt.HALF_FLOAT_OES : undefined;
 
   const vert = compileShader(gl, gl.VERTEX_SHADER, vertSrc);
   const simFrag = compileShader(gl, gl.FRAGMENT_SHADER, simSrc);
@@ -65,8 +66,8 @@ export function createReactionDiffusion(
     return [1.0, inSeed || noise ? 1.0 : 0.0];
   };
 
-  let texA = createStateTexture(gl, SIM_SIZE, SIM_SIZE, seed);
-  let texB = createStateTexture(gl, SIM_SIZE, SIM_SIZE);
+  let texA = createStateTexture(gl, SIM_SIZE, SIM_SIZE, seed, halfFloatType);
+  let texB = createStateTexture(gl, SIM_SIZE, SIM_SIZE, undefined, halfFloatType);
   let fbA = createFramebuffer(gl, texA);
   let fbB = createFramebuffer(gl, texB);
 
